@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import pathlib
 import data_specs
+import matplotlib.pyplot as plt
+
 
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parents[0]
@@ -92,6 +94,45 @@ def main():
 
 
 def show_dashboard(df):
+    # Calculate some basic statistics
+    total_trades = df.shape[0]
+    winning_trades = df[df['tradeinfo_gain_absolut'] > 0].shape[0]
+    losing_trades = df[df['tradeinfo_gain_absolut'] < 0].shape[0]
+    win_rate = winning_trades / total_trades
+
+    average_win = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].mean()
+    average_loss = df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].mean()
+
+    # Display statistics on the dashboard
+    st.title("Trading Dashboard")
+
+    st.header("Trading Statistics")
+    st.markdown(f"Total number of trades: {total_trades}")
+    st.markdown(f"Number of winning trades: {winning_trades}")
+    st.markdown(f"Number of losing trades: {losing_trades}")
+    st.markdown(f"Win rate: {win_rate * 100:.2f}%")
+    st.markdown(f"Average win: {average_win:.2f}")
+    st.markdown(f"Average loss: {average_loss:.2f}")
+
+    # Add placeholder for other metrics
+    st.markdown("Profit Factor: TBD")
+    st.markdown("Drawdown: TBD")
+    st.markdown("Risk-Reward Ratio: TBD")
+    st.markdown("Average Risk-Reward Ratio: TBD")
+    st.markdown("Expectancy: TBD")
+
+    # Display latest trades
+    st.header("Latest Trades")
+    st.dataframe(df.tail(10))
+
+    # Display a plot (example: histogram of winning and losing trades)
+    st.header("Trade Performance Distribution")
+    fig, ax = plt.subplots()
+    df['tradeinfo_gain_absolut'].plot(kind='hist', ax=ax, bins=50, alpha=0.5, color='green', label='Gain')
+    ax.set_xlabel('Gain/Loss')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Histogram of Trade Performance')
+    st.pyplot(fig)
     return df
 
 
