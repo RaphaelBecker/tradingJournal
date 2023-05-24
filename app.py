@@ -44,6 +44,19 @@ def color_negative_red_positive_green(val):
     color = 'red' if val < 0 else 'green' if val > 0 else 'black'
     return 'color: %s' % color
 
+# Function to categorize columns
+def categorize_column(col_name):
+    if "tradeinfo" in col_name:
+        return 0
+    elif "fundamentals" in col_name:
+        return 1
+    elif "technical" in col_name:
+        return 2
+    elif "human" in col_name:
+        return 3
+    else:
+        return -1
+
 def main():
     st.title('Trading Journal')
     page = "Dashboard"
@@ -106,48 +119,59 @@ def show_trade_list(df):
 
 
 def show_analysis(df):
-    with st.form(key='new_trade_form'):
-        st.header('Add a New Trade')
-        new_trade_data = {}
+    with st.expander("Add new trade"):
+        with st.form(key='new_trade_form'):
+            st.header('Add a New Trade')
+            new_trade_data = {}
 
-        cols = st.columns(4)
-        for i, col in enumerate(df.columns):
-            new_trade_data[col] = cols[i % 4].text_input(f"New Trade {col}")
+            cols = st.columns(4)
+            for i, col in enumerate(df.columns):
+                new_trade_data[col] = cols[i % 4].text_input(f"New Trade {col}")
 
-        submit_button = st.form_submit_button(label='Submit New Trade')
+            submit_button = st.form_submit_button(label='Submit New Trade')
 
-        if submit_button:
-            # Append the new trade to the DataFrame
-            df = df.append(new_trade_data, ignore_index=True)
-            st.success('New trade added successfully!')
+            if submit_button:
+                # Append the new trade to the DataFrame
+                df = df.append(new_trade_data, ignore_index=True)
+                st.success('New trade added successfully!')
 
-    # Create a new column that combines the details we want to display
-    df['Trade Details'] = 'Index: ' + df.index.astype(str) + '  Ticker: ' + df['tradeinfo_Ticker'] + '  Entry Date: ' + df['tradeinfo_entry_date'].astype(str) + '   Entry Price:' + df['tradeinfo_entry_price'].astype(str)
+    with st.expander("Edit trade"):
+        # Create a new column that combines the details we want to display
+        df['Trade Details'] = 'Index: ' + df.index.astype(str) + '  Ticker: ' + df['tradeinfo_Ticker'] + '  Entry Date: ' + df['tradeinfo_entry_date'].astype(str) + '   Entry Price:' + df['tradeinfo_entry_price'].astype(str)
 
 
-    # Let the user select a trade to edit
-    trade_to_edit = st.selectbox('Select a trade to edit', df['Trade Details'])
+        # Let the user select a trade to edit
+        trade_to_edit = st.selectbox('Select a trade to edit', df['Trade Details'])
 
-    # Get the index of the selected trade
-    trade_to_edit_index = df[df['Trade Details'] == trade_to_edit].index[0]
+        # Get the index of the selected trade
+        trade_to_edit_index = df[df['Trade Details'] == trade_to_edit].index[0]
 
-    with st.form(key='edit_trade_form'):
-        st.header(f'Edit Trade {trade_to_edit_index}')
-        edit_trade_data = {}
+        # Create the form to edit the selected trade
+        with st.form(key='edit_trade_form'):
+            st.header(f'Edit Trade {trade_to_edit_index}')
+            edit_trade_data = {}
 
-        cols = st.columns(4)
-        for i, col in enumerate(df.columns):
-            default_value = df.loc[trade_to_edit_index, col]
-            edit_trade_data[col] = cols[i % 4].text_input(f"Trade {trade_to_edit_index} {col}", value=default_value)
+            # Create 4 columns
+            cols = st.columns(4)
 
-        submit_button = st.form_submit_button(label='Submit Changes')
-
-        if submit_button:
-            # Update the trade in the DataFrame
             for col in df.columns:
-                df.loc[trade_to_edit_index, col] = edit_trade_data[col]
+                # Categorize the column
+                category = categorize_column(col)
+                default_value = df.loc[trade_to_edit_index, col]
 
-            st.success(f'Trade {trade_to_edit_index} updated successfully!')
+                # If the column belongs to one of the categories, create a text input for it in the corresponding column
+                if category >= 0:
+                    label = " ".join(col.split("_")[1:])
+                    edit_trade_data[col] = cols[category].text_input(f"{label}",
+                                                                     value=default_value)
+
+            submit_button = st.form_submit_button(label='Submit Changes')
+
+            if submit_button:
+                # Update the trade in the DataFrame
+                for col in df.columns:
+                    df.loc[trade_to_edit_index, col] = edit_trade_data[col]
+                st.success(f'Trade {trade_to_edit_index} updated successfully!')
 
     return df
 
