@@ -1,0 +1,9 @@
+tradeinfo_Ticker
+tradeinfo_entry_date
+tradeinfo_entry_price
+tradeinfo_exit_date
+tradeinfo_exit_price
+tradeinfo_gain_percentage
+fundamentals_sector
+fundamentals_market_cap
+human_mistake
