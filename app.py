@@ -4,11 +4,13 @@ import os
 import pathlib
 import data_specs
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parents[0]
 filepath_datastore = ROOT_DIR.joinpath('local_storage').joinpath('trades.csv')
+filepath_selected_cols = ROOT_DIR.joinpath('local_storage').joinpath('selected_columns.txt')
 st.set_page_config(layout="wide")
 
 if 'page' not in st.session_state:
@@ -43,15 +45,16 @@ def save_data(df):
     df.to_csv(filepath_datastore, index=False)
 
 def save_selected_columns(columns):
-    with open('selected_columns.txt', 'w') as f:
+    with open(filepath_selected_cols, 'w') as f:
         for column in columns:
             f.write(column + '\n')
 
 def load_selected_columns():
     try:
-        with open('selected_columns.txt', 'r') as f:
+        with open(filepath_selected_cols, 'r') as f:
             return [line.strip() for line in f.readlines()]
     except FileNotFoundError:
+        st.error(f"selected_columns in {filepath_selected_cols} not found")
         return []
 
 def color_negative_red_positive_green(val):
@@ -88,8 +91,8 @@ def main():
             st.session_state.title = "DASHBOARD"
 
     with column2:
-        if st.button('Trade List'):
-            st.session_state.page = "Trade List"
+        if st.button('Manage Trades'):
+            st.session_state.page = "Manage Trades"
             st.session_state.title = "MANAGE TRADES"
 
     with column3:
@@ -104,8 +107,8 @@ def main():
 
     if st.session_state.page == "Dashboard":
         df = show_dashboard(df)
-    elif st.session_state.page == "Trade List":
-        df = show_trade_list(df)
+    elif st.session_state.page == "Manage Trades":
+        df = show_manage_trades(df)
     elif st.session_state.page == "Analysis":
         df = show_analysis(df)
 
@@ -222,7 +225,7 @@ def show_dashboard(df):
     return df
 
 
-def show_trade_list(df):
+def show_manage_trades(df):
     with st.expander("Add new trade"):
         with st.form(key='new_trade_form'):
             st.header('Add a New Trade')
@@ -236,7 +239,14 @@ def show_trade_list(df):
                 # If the column belongs to one of the categories, create a text input for it in the corresponding column
                 if category >= 0:
                     label = " ".join(col.split("_")[1:])
-                    new_trade_data[col] = cols[category].text_input(f"{label}")
+                    if "sector" in label:
+                        new_trade_data[col] = cols[category].selectbox(f"{label}", data_specs.sectors)
+                    if "market cap" in label:
+                        new_trade_data[col] = cols[category].selectbox(f"{label}", data_specs.market_cap_ranges)
+                    if "date" in label:
+                        new_trade_data[col] = cols[category].date_input(f"{label}", datetime.now())
+                    else:
+                        new_trade_data[col] = cols[category].text_input(f"{label}")
 
             submit_button = st.form_submit_button(label='Submit New Trade')
 

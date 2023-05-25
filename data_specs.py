@@ -8,7 +8,6 @@ journal_data_df_colums = [
     "tradeinfo_gain_absolut",
     "tradeinfo_tax",
     "tradeinfo_fees",
-    "tradeinfo_exchange",
 
     "fundamentals_sector",
     "fundamentals_market_cap",
@@ -32,4 +31,26 @@ journal_data_df_colums = [
     "human_mood_on_exit",
     "human_mistake",
     "human_reflection_for_improvement",
+]
+
+sectors = [
+    "Basic Materials",
+    "Communication Services",
+    "Consumer Cyclical",
+    "Consumer Defensive",
+    "Energy",
+    "Financial Services",
+    "Healthcare",
+    "Industrials",
+    "Technology",
+    "Utilities",
+    "Real Estate",
+]
+
+market_cap_ranges = [
+    "Micro Cap (under $300Mio)",
+    "Small Cap (300Mio-$2Mrd)",
+    "Mid Cap (2Mrd-$10Mrd)",
+    "Large Cap (10Mrd-$200Mrd)",
+    "Mega Cap (200Mrd+)",
 ]
