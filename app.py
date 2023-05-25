@@ -14,12 +14,26 @@ st.set_page_config(layout="wide")
 if 'page' not in st.session_state:
     st.session_state.page = 'Dashboard'
 
+if 'title' not in st.session_state:
+    st.session_state.title = "DASHBOARD"
+
+if 'metric1' not in st.session_state:
+    st.session_state.metric1 = "tradeinfo_entry_price"
+
+if 'additional_metrics' not in st.session_state:
+    st.session_state.additional_metrics = ""
+
 # https://www.investopedia.com/top-7-technical-analysis-tools-4773275
 # https://www.investopedia.com/articles/fundamental-analysis/09/five-must-have-metrics-value-investors.asp
 
 def load_data():
     if os.path.exists(filepath_datastore):
-        return pd.read_csv(filepath_datastore)
+        df = pd.read_csv(filepath_datastore)
+        # Convert exit dates to datetime if not already
+        df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'])
+        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
+
+        return df
     else:
         return pd.DataFrame(columns=data_specs.journal_data_df_colums)
 
@@ -66,20 +80,25 @@ def get_label(labelstring):
 
 
 def main():
-    st.title('Trading Journal')
 
-    column1, column2, column3 = st.columns(3)
+    column1, column2, column3, _4, _5, _6, _7 = st.columns(7)
     with column1:
         if st.button('Dashboard'):
             st.session_state.page = "Dashboard"
+            st.session_state.title = "DASHBOARD"
+
     with column2:
         if st.button('Trade List'):
             st.session_state.page = "Trade List"
+            st.session_state.title = "MANAGE TRADES"
+
     with column3:
         if st.button('Analysis'):
             st.session_state.page = "Analysis"
+            st.session_state.title = "ANALYISIS"
 
-    #page = st.sidebar.selectbox("Choose a page", ["Dashboard", "Trade List", "Analysis"])
+
+    st.title(st.session_state.title)
 
     df = load_data()
 
@@ -103,36 +122,103 @@ def show_dashboard(df):
     average_win = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].mean()
     average_loss = df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].mean()
 
-    # Display statistics on the dashboard
-    st.title("Trading Dashboard")
+    #---------------------------------------------------------------------------------------------------------------
 
-    st.header("Trading Statistics")
-    st.markdown(f"Total number of trades: {total_trades}")
-    st.markdown(f"Number of winning trades: {winning_trades}")
-    st.markdown(f"Number of losing trades: {losing_trades}")
-    st.markdown(f"Win rate: {win_rate * 100:.2f}%")
-    st.markdown(f"Average win: {average_win:.2f}")
-    st.markdown(f"Average loss: {average_loss:.2f}")
+    # Calculate the total profit from winning trades
+    total_profit = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].sum()
+
+    # Calculate the total loss from losing trades
+    # Since losses are represented as negative numbers, we need to multiply by -1 to get a positive total loss
+    total_loss = (-1) * df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].sum()
+
+    #---------------------------------------------------------------------------------------------------------------
+
+    # Calculate the Profit Factor
+    profit_factor = round(total_profit / total_loss, 2)
+
+    # Calculate the cumulative returns
+    cumulative_returns = df['tradeinfo_gain_absolut'].cumsum()
+
+    # Calculate the running maximum
+    running_max = cumulative_returns.cummax()
+
+    # Calculate the drawdown
+    drawdown = running_max - cumulative_returns
+
+    # Maximum drawdown in dollar terms
+    max_drawdown_value = round(drawdown.max(),2)
+
+    # Maximum drawdown as a percentage of the portfolio value
+    max_drawdown_percentage = round(drawdown.max() / running_max.max(), 2)
+
+    #---------------------------------------------------------------------------------------------------------------
+
+    st.subheader("BASIC TRADING STATISTICS")
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    with col1:
+        st.metric("Total number of trades", total_trades)
+    with col2:
+        st.metric("Number of winning trades", winning_trades)
+    with col3:
+        st.metric("Number of losing trades", losing_trades)
+    with col4:
+        st.metric("Win rate [%]", f"{win_rate * 100:.2f}")
+    with col5:
+        st.metric("Average win [EUR]", f"{average_win:.2f}")
+    with col6:
+        st.metric("Average loss [EUR]", f"{average_loss:.2f}")
+
+
 
     # Add placeholder for other metrics
-    st.markdown("Profit Factor: TBD")
-    st.markdown("Drawdown: TBD")
-    st.markdown("Risk-Reward Ratio: TBD")
-    st.markdown("Average Risk-Reward Ratio: TBD")
-    st.markdown("Expectancy: TBD")
+    with col1:
+        st.metric("Profit Factor", profit_factor)
+    with col2:
+        st.metric("Max Drawdown", max_drawdown_value)
+    with col3:
+        st.metric("Max Drawdown [%]", max_drawdown_percentage)
 
-    # Display latest trades
-    st.header("Latest Trades")
-    st.dataframe(df.tail(10))
+    # -------------------------------------------------------------------------------------------------------------
+    # PLOT GAIN:
+    st.subheader("ACCUMULATED GAIN")
+    # Ensure 'tradeinfo_exit_date' is in datetime format
+    df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
 
-    # Display a plot (example: histogram of winning and losing trades)
-    st.header("Trade Performance Distribution")
-    fig, ax = plt.subplots()
-    df['tradeinfo_gain_absolut'].plot(kind='hist', ax=ax, bins=50, alpha=0.5, color='green', label='Gain')
-    ax.set_xlabel('Gain/Loss')
-    ax.set_ylabel('Frequency')
-    ax.set_title('Histogram of Trade Performance')
-    st.pyplot(fig)
+    # Ensure 'tradeinfo_gain_absolut' is numeric (float or int)
+    df['tradeinfo_gain_absolut'] = pd.to_numeric(df['tradeinfo_gain_absolut'], errors='coerce')
+
+    # Sort dataframe by 'tradeinfo_exit_date'
+    df = df.sort_values('tradeinfo_exit_date')
+
+    # Compute accumulated gain
+    df['accumulated_gain'] = df['tradeinfo_gain_absolut'].cumsum()
+
+    # Plot
+    st.area_chart(df.set_index('tradeinfo_exit_date')['accumulated_gain'])
+
+    # -------------------------------------------------------------------------------------------------------------
+    # PLOT ADDITIONAL METRICS:
+    st.subheader("COMPARE METRICS")
+    # List of metrics available for plotting
+    metrics = ['tradeinfo_entry_price', 'tradeinfo_exit_price', 'tradeinfo_gain_percentage',
+               'tradeinfo_gain_absolut', 'tradeinfo_tax', 'tradeinfo_fees', 'fundamentals_market_cap',
+               'fundamentals_price_to_earning', 'fundamentals_price_to_book', 'fundamentals_dept_to_equity',
+               'fundamentals_free_cash_flow', 'fundamentals_PEG_ratio', 'technical_RSI', 'technical_trend_mac_d',
+               'technical_on_balance_volume', 'technical_AD_line', 'technical_ADX', 'technical_aroon_indicator']
+
+    metric_col1, metric_col2 = st.columns(2)
+    with metric_col1:
+        st.session_state.metric1 = st.selectbox('Select metric 1:', options=metrics)
+    with metric_col2:
+        st.session_state.additional_metrics = st.multiselect('Select additional metrics:', options=metrics)
+
+    # Combine metric1 and additional metrics
+    selected_metrics = [st.session_state.metric1] + st.session_state.additional_metrics
+
+    # Plot
+    st.line_chart(df.set_index('tradeinfo_exit_date')[selected_metrics])
+
+
     return df
 
 
@@ -225,7 +311,7 @@ def show_trade_list(df):
             st.experimental_data_editor(df[selected_columns])
         save_selected_columns(selected_columns)
     else:
-        st.write("Select columns from the sidebar to view the data.")
+        st.write("Select columns from selectbox!")
 
     return df
 

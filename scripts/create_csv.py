@@ -24,7 +24,6 @@ data = {
     "tradeinfo_gain_absolut": np.random.uniform(-100, 100, size=20),
     "tradeinfo_tax": np.random.uniform(10, 30, size=20),
     "tradeinfo_fees": np.random.uniform(1, 10, size=20),
-    "tradeinfo_exchange": np.random.choice(['NYSE', 'NASDAQ', 'CBOE', 'AMEX', 'BATS'], size=20),
 
     "fundamentals_sector": np.random.choice(
         ['Technology', 'Consumer Discretionary', 'Healthcare', 'Financials', 'Industrials'], size=20),
