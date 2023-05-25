@@ -36,8 +36,8 @@ def load_data():
     if os.path.exists(filepath_datastore):
         df = pd.read_csv(filepath_datastore)
         # Convert exit dates to datetime if not already
-        df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'])
-        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
+        df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'], format="%Y-%m-%d %H:%M:%S")
+        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'], format="%Y-%m-%d %H:%M:%S")
         print(f"loaded dataframe: {len(df)}")
         return df
     else:
@@ -46,7 +46,8 @@ def load_data():
 
 def save_data(df):
     # Ensure 'tradeinfo_entry_date' is in datetime format
-    df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'])
+    df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'], format="%Y-%m-%d %H:%M:%S")
+    df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'], format="%Y-%m-%d %H:%M:%S")
     df = df.sort_values(by="tradeinfo_entry_date", ascending=False)
     df.to_csv(filepath_datastore, index=False)
     print(f"saved dataframe: {len(df)}")
@@ -125,6 +126,10 @@ def main():
     df['tradeinfo_exit_price'] = pd.to_numeric(df['tradeinfo_exit_price'], errors='coerce')
     df['tradeinfo_number_shares'] = pd.to_numeric(df['tradeinfo_number_shares'], errors='coerce')
 
+    # Save rows with null 'tradeinfo_entry_price', 'tradeinfo_exit_price' or 'tradeinfo_number_shares'
+    buffer_df = df[df['tradeinfo_entry_price'].isnull() | df['tradeinfo_exit_price'].isnull() | df[
+        'tradeinfo_number_shares'].isnull()]
+
     # Filter the dataframe to only include rows where 'tradeinfo_entry_price', 'tradeinfo_exit_price' and 'tradeinfo_number_shares' are not null
     df = df[df['tradeinfo_entry_price'].notnull() & df['tradeinfo_exit_price'].notnull() & df[
         'tradeinfo_number_shares'].notnull()]
@@ -136,6 +141,8 @@ def main():
     # Calculate 'tradeinfo_gain_percentage'
     df['tradeinfo_gain_percentage'] = ((df['tradeinfo_exit_price'] / df['tradeinfo_entry_price']) - 1) * 100
 
+    # Append the buffered rows back to the DataFrame
+    df = pd.concat([df, buffer_df], ignore_index=True)
     # -----------------------------------------------------------------------------------------------------------------
 
     # Round all columns in the DataFrame
@@ -369,16 +376,16 @@ def show_manage_trades(df):
                             close_trade_data[col] = cols[category].date_input(f"{label}",default_value)
                         elif "mood on exit" in label:
                             close_trade_data[col] = cols[category].selectbox(f"{label}",
-                                                                            [default_value] + data_specs.sorted_moods)
+                                                                             data_specs.sorted_moods)
                         elif "mistake" in label:
                             close_trade_data[col] = cols[category].selectbox(f"{label}",
-                                                                            [default_value] + data_specs.trading_mistakes)
+                                                                            data_specs.trading_mistakes)
                         elif "exit date" in label:
                             close_trade_data[col] = cols[category].date_input(f"{label}", datetime.now())
                         else:
                             close_trade_labels = ["reflection for", "exit price", "entry price"]
                             if any(close_trade_label in label for close_trade_label in close_trade_labels):
-                                open_trade_data[col] = cols[category].text_input(f"{label}", default_value)
+                                close_trade_data[col] = cols[category].text_input(f"{label}", default_value)
                             else:
                                 close_trade_data[col] = default_value
 
@@ -386,6 +393,8 @@ def show_manage_trades(df):
 
                 if close_button:
                     # Update the trade in the DataFrame
+                    st.text(close_trade_data)
+                    st.text(df.columns)
                     for col in df.columns:
                         df.loc[trade_to_close, col] = close_trade_data[col]
                     save_data(df)
@@ -470,7 +479,7 @@ def show_manage_trades(df):
         with col1:
             sort_column = st.selectbox("Select column to sort by", sort_options)
         with col2:
-            ascending = st.checkbox("iverse sorting")
+            ascending = st.checkbox("inverse sorting")
 
         if sort_column != "None":
             df = df.sort_values(sort_column, ascending=ascending)
