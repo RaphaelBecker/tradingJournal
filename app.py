@@ -6,6 +6,9 @@ import data_specs
 import matplotlib.pyplot as plt
 from collections.abc import Iterable
 from datetime import datetime
+from PIL import Image
+import io
+import tempfile
 
 
 # state and paths
@@ -304,6 +307,7 @@ def show_manage_trades(df):
     with st.expander("Open new trade"):
         with st.form(key='new_trade_form'):
             st.header('Open Trade')
+
             open_trade_data = {}
 
             cols = st.columns(4)

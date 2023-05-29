@@ -53,6 +53,7 @@ data = {
     "human_mood_on_exit": np.random.choice(data_specs.sorted_moods, size=20),
     "human_mistake": np.random.choice(data_specs.trading_mistakes, size=20),
     "human_reflection_for_improvement": ['Improvement ' + str(i) for i in range(1, 21)],
+
 }
 
 df = pd.DataFrame(data)

@@ -75,3 +75,15 @@ Your contributions can take many forms: from improvements in the codebase, addin
 ## Installation
 
 Together, let's build a better, smarter, and more efficient trading environment for everyone. Join us on this exciting journey!
+
+## Improvements planned
+
+* dont show classification in dataframe columns (not possible)
+* add technical analysis picture to trade ()
+* add back and restore function
+* add Installation description also with Docker
+* add tax and fee in %
+* make comparison chart capable with different y-axis 
+* memorize chart settings like 
+* Grouping manage trades more space efficient
+* Refactor code, split into modules
