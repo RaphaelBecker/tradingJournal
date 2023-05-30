@@ -90,13 +90,13 @@ def categorize_column(col_name):
 def get_label(labelstring):
     return " ".join(labelstring.split("_")[1:])
 
-def ensure_iterable(obj):
-    if isinstance(obj, Iterable) and not isinstance(obj, str):
-        # It's already iterable and not a string - just return it.
-        return obj
-    else:
-        # It's a single element - return it as a single-item list.
-        return [obj]
+
+def is_image_file(file):
+    try:
+        Image.open(file)
+        return True
+    except IOError:
+        return False
 
 
 def main():
@@ -309,6 +309,25 @@ def show_manage_trades(df):
             st.header('Open Trade')
 
             open_trade_data = {}
+            uploaded_file_path = None
+            uploaded_file = st.file_uploader("Upload an image")
+
+            if uploaded_file is not None:
+                if is_image_file(uploaded_file):
+
+                    # Create the images directory if it doesn't already exist
+                    images_dir = ROOT_DIR / 'local_storage' / 'images'
+                    images_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Save the uploaded file to the images directory
+                    uploaded_file_path = images_dir / uploaded_file.name
+                    with open(uploaded_file_path, 'wb') as out_file:
+                        out_file.write(uploaded_file.read())
+
+                    st.success(f"Image saved to {uploaded_file_path}")
+                else:
+                    st.error("Uploaded file is not an image. Please upload a picture.")
+                    uploaded_file_path = None
 
             cols = st.columns(4)
             for col in df.columns:
@@ -338,6 +357,9 @@ def show_manage_trades(df):
                             open_trade_data[col] = cols[category].text_input(f"{label}")
                         else:
                             open_trade_data[col] = None
+                else:
+                    if "picture_path" in col:
+                        open_trade_data[col] = str(uploaded_file_path)
 
             open_button = st.form_submit_button(label='Open Trade')
 
@@ -362,6 +384,12 @@ def show_manage_trades(df):
             with st.form(key='close_trade_form'):
                 st.header(f'Close Trade {trade_to_close}')
                 close_trade_data = {}
+
+                image_path_str = str(df.loc[trade_to_close, "picture_path"])
+                st.text(image_path_str)
+
+                # Create 4 columns
+                cols = st.columns(4)
 
                 # Create 4 columns
                 cols = st.columns(4)
