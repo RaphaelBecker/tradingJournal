@@ -91,14 +91,6 @@ def get_label(labelstring):
     return " ".join(labelstring.split("_")[1:])
 
 
-def is_image_file(file):
-    try:
-        Image.open(file)
-        return True
-    except IOError:
-        return False
-
-
 def main():
 
     column1, column2, column3, _4, _5, _6, _7 = st.columns(7)
@@ -313,21 +305,16 @@ def show_manage_trades(df):
             uploaded_file = st.file_uploader("Upload an image")
 
             if uploaded_file is not None:
-                if is_image_file(uploaded_file):
+                # Create the images directory if it doesn't already exist
+                images_dir = ROOT_DIR / 'local_storage' / 'images'
+                images_dir.mkdir(parents=True, exist_ok=True)
 
-                    # Create the images directory if it doesn't already exist
-                    images_dir = ROOT_DIR / 'local_storage' / 'images'
-                    images_dir.mkdir(parents=True, exist_ok=True)
+                # Save the uploaded file to the images directory
+                uploaded_file_path = images_dir / uploaded_file.name
+                with open(uploaded_file_path, 'wb') as out_file:
+                    out_file.write(uploaded_file.read())
 
-                    # Save the uploaded file to the images directory
-                    uploaded_file_path = images_dir / uploaded_file.name
-                    with open(uploaded_file_path, 'wb') as out_file:
-                        out_file.write(uploaded_file.read())
-
-                    st.success(f"Image saved to {uploaded_file_path}")
-                else:
-                    st.error("Uploaded file is not an image. Please upload a picture.")
-                    uploaded_file_path = None
+                st.success(f"Image saved to {uploaded_file_path}")
 
             cols = st.columns(4)
             for col in df.columns:
@@ -385,11 +372,20 @@ def show_manage_trades(df):
                 st.header(f'Close Trade {trade_to_close}')
                 close_trade_data = {}
 
-                image_path_str = str(df.loc[trade_to_close, "picture_path"])
-                st.text(image_path_str)
+                image_path = None
+                if df.loc[trade_to_close, "picture_path"]:
+                    image_path = pathlib.Path(str(df.loc[trade_to_close, "picture_path"]))
 
-                # Create 4 columns
-                cols = st.columns(4)
+                # Check if the path is valid
+                if image_path is not None:
+                    try:
+                        image = Image.open(image_path)
+                        st.image(image, caption='Uploaded Image', width=800)
+                    except IOError as e:
+                        st.write(f"IMAGE: Could not read file, does it exist?..  {image_path}: {e}")
+                else:
+                    st.write("IMAGE: The image file does not exist.")
+
 
                 # Create 4 columns
                 cols = st.columns(4)
@@ -443,6 +439,37 @@ def show_manage_trades(df):
         with st.form(key='edit_trade_form'):
             st.header(f'Edit Trade {trade_to_edit}')
             edit_trade_data = {}
+
+            image_path = None
+            if df.loc[trade_to_edit, "picture_path"]:
+                image_path = pathlib.Path(str(df.loc[trade_to_edit, "picture_path"]))
+
+            # Check if the path is valid
+            if image_path is not None:
+                try:
+                    image = Image.open(image_path)
+                    st.image(image, caption='Uploaded Image', width=800)
+                except IOError as e:
+                    st.write(f"IMAGE: Could not read file, does it exist?..  {image_path}: {e}")
+            else:
+                st.write("IMAGE: The image file does not exist.")
+
+            uploaded_file = st.file_uploader("Change the Image")
+
+            if uploaded_file is not None:
+                # Create the images directory if it doesn't already exist
+                images_dir = ROOT_DIR / 'local_storage' / 'images'
+                images_dir.mkdir(parents=True, exist_ok=True)
+
+                # Save the uploaded file to the images directory
+                uploaded_file_path = images_dir / uploaded_file.name
+                with open(uploaded_file_path, 'wb') as out_file:
+                    out_file.write(uploaded_file.read())
+
+                edit_trade_data["picture_path"] = str(uploaded_file_path)
+
+
+                st.success(f"Image saved to {uploaded_file_path}")
 
             # Create 4 columns
             cols = st.columns(4)
