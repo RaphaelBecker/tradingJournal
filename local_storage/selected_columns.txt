@@ -8,4 +8,3 @@ fundamentals_sector
 fundamentals_market_cap
 human_mistake
 tradeinfo_gain_percentage
-picture_path

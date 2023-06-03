@@ -54,7 +54,7 @@ data = {
     "human_mistake": np.random.choice(data_specs.trading_mistakes, size=20),
     "human_reflection_for_improvement": ['Improvement ' + str(i) for i in range(1, 21)],
 
-    "picture_path": "default path",
+    "human_picture_path": "Here Is A Default Path",
 
 }
 

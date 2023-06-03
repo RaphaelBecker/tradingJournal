@@ -29,6 +29,9 @@ if 'title' not in st.session_state:
 if 'metric1' not in st.session_state:
     st.session_state.metric1 = "tradeinfo_entry_price"
 
+if 'metric2' not in st.session_state:
+    st.session_state.metric2 = "tradeinfo_entry_price"
+
 if 'additional_metrics' not in st.session_state:
     st.session_state.additional_metrics = ""
 
@@ -39,8 +42,8 @@ def load_data():
     if os.path.exists(filepath_datastore):
         df = pd.read_csv(filepath_datastore)
         # Convert exit dates to datetime if not already
-        df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'], format="%Y-%m-%d %H:%M:%S")
-        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'], format="%Y-%m-%d %H:%M:%S")
+        df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'], format="%Y-%m-%d")
+        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'], format="%Y-%m-%d")
         print(f"loaded dataframe: {len(df)}")
         return df
     else:
@@ -282,6 +285,9 @@ def show_dashboard(df):
                'fundamentals_free_cash_flow', 'fundamentals_PEG_ratio', 'technical_RSI', 'technical_trend_mac_d',
                'technical_on_balance_volume', 'technical_AD_line', 'technical_ADX', 'technical_aroon_indicator']
 
+    metrics2 = ["human_trading_idea_description", "human_mood_on_entry", "human_mood_on_exit", "human_mistake",
+               "human_reflection_for_improvement"]
+
     metric_col1, metric_col2 = st.columns(2)
     with metric_col1:
         st.session_state.metric1 = st.selectbox('Select metric 1:', options=metrics)
@@ -293,6 +299,15 @@ def show_dashboard(df):
 
     # Plot
     st.line_chart(df.set_index('tradeinfo_exit_date')[selected_metrics])
+
+    # second plot for comparing different units
+    st.session_state.metric2 = st.selectbox('Select metric 2:', options=metrics)
+    # Sort DataFrame by date
+    df_sorted = df.sort_values('tradeinfo_exit_date')
+
+    # Plot
+    st.line_chart(df_sorted.set_index('tradeinfo_exit_date')[st.session_state.metric2])
+
 
 
 def show_manage_trades(df):
@@ -306,11 +321,11 @@ def show_manage_trades(df):
 
             if uploaded_file is not None:
                 # Create the images directory if it doesn't already exist
-                images_dir = ROOT_DIR / 'local_storage' / 'images'
+                images_dir = ROOT_DIR.joinpath('local_storage').joinpath('images')
                 images_dir.mkdir(parents=True, exist_ok=True)
 
                 # Save the uploaded file to the images directory
-                uploaded_file_path = images_dir / uploaded_file.name
+                uploaded_file_path = images_dir.joinpath(uploaded_file.name)
                 with open(uploaded_file_path, 'wb') as out_file:
                     out_file.write(uploaded_file.read())
 
@@ -338,15 +353,14 @@ def show_manage_trades(df):
                         open_trade_data[col] = cols[category].selectbox(f"{label}", data_specs.sorted_moods)
                     elif "entry date" in label:
                         open_trade_data[col] = cols[category].date_input(f"{label}", datetime.now())
+                    elif "picture path" in label:
+                        open_trade_data[col] = str(uploaded_file_path)
                     else:
                         close_trade_labels = ["mood on exit", "mistake", "reflection for", "exit date", "exit price", "tax", "fees", "gain"]
                         if not any(close_trade_label in label for close_trade_label in close_trade_labels):
                             open_trade_data[col] = cols[category].text_input(f"{label}")
                         else:
                             open_trade_data[col] = None
-                else:
-                    if "picture_path" in col:
-                        open_trade_data[col] = str(uploaded_file_path)
 
             open_button = st.form_submit_button(label='Open Trade')
 
@@ -373,8 +387,8 @@ def show_manage_trades(df):
                 close_trade_data = {}
 
                 image_path = None
-                if df.loc[trade_to_close, "picture_path"]:
-                    image_path = pathlib.Path(str(df.loc[trade_to_close, "picture_path"]))
+                if df.loc[trade_to_close, "human_picture_path"]:
+                    image_path = pathlib.Path(str(df.loc[trade_to_close, "human_picture_path"]))
 
                 # Check if the path is valid
                 if image_path is not None:
@@ -432,19 +446,19 @@ def show_manage_trades(df):
 
 
     with st.expander("Edit trade"):
-        # Let the user select a trade to edit
-        trade_to_edit = st.selectbox('Select a trade to edit', df.index)
+        # Let the user select a trade to edit which is already closed:
+        closed_trades = df[df['tradeinfo_exit_price'].notna()]
+        trade_to_edit = st.selectbox('Select a trade to edit', closed_trades.index)
 
         # Create the form to edit the selected trade
         with st.form(key='edit_trade_form'):
             st.header(f'Edit Trade {trade_to_edit}')
             edit_trade_data = {}
 
-            image_path = None
-            if df.loc[trade_to_edit, "picture_path"]:
-                image_path = pathlib.Path(str(df.loc[trade_to_edit, "picture_path"]))
+            if df.loc[trade_to_edit, "human_picture_path"]:
+                image_path = pathlib.Path(str(df.loc[trade_to_edit, "human_picture_path"]))
 
-            # Check if the path is valid
+                # Check if the path is valid
             if image_path is not None:
                 try:
                     image = Image.open(image_path)
@@ -452,24 +466,10 @@ def show_manage_trades(df):
                 except IOError as e:
                     st.write(f"IMAGE: Could not read file, does it exist?..  {image_path}: {e}")
             else:
-                st.write("IMAGE: The image file does not exist.")
+                st.write("No Image")
 
             uploaded_file = st.file_uploader("Change the Image")
 
-            if uploaded_file is not None:
-                # Create the images directory if it doesn't already exist
-                images_dir = ROOT_DIR / 'local_storage' / 'images'
-                images_dir.mkdir(parents=True, exist_ok=True)
-
-                # Save the uploaded file to the images directory
-                uploaded_file_path = images_dir / uploaded_file.name
-                with open(uploaded_file_path, 'wb') as out_file:
-                    out_file.write(uploaded_file.read())
-
-                edit_trade_data["picture_path"] = str(uploaded_file_path)
-
-
-                st.success(f"Image saved to {uploaded_file_path}")
 
             # Create 4 columns
             cols = st.columns(4)
@@ -500,6 +500,24 @@ def show_manage_trades(df):
                         edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.trading_mistakes)
                     elif "date" in label:
                         edit_trade_data[col] = cols[category].date_input(f"{label}", default_value)
+                    elif "picture path" in label:
+                        if uploaded_file:
+                            default_value = ROOT_DIR.joinpath('local_storage').joinpath('images').joinpath(uploaded_file.name)
+                            with open(default_value, 'wb') as out_file:
+                                out_file.write(uploaded_file.read())
+
+                            # delete old picture
+                            try:
+                                os.remove(image_path)
+                                st.info(f"File {image_path} has been deleted.")
+                            except FileNotFoundError:
+                                st.info(f"File {image_path} not found.")
+                            except PermissionError:
+                                st.info(f"Permission denied.")
+                            except Exception as e:
+                                st.info(f"An error occurred: {e}")
+                        edit_trade_data[col] = default_value
+
                     else:
                         if not 'gain' in label:
                             edit_trade_data[col] = cols[category].text_input(f"{label}", value=default_value)
@@ -517,6 +535,7 @@ def show_manage_trades(df):
                 # Update the trade in the DataFrame
                 for col in df.columns:
                     df.loc[trade_to_edit, col] = edit_trade_data[col]
+                save_data(df)
                 st.success(f'Trade {trade_to_edit} updated successfully!')
 
             if delete_button:
