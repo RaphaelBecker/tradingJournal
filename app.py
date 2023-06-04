@@ -9,7 +9,7 @@ from datetime import datetime
 from PIL import Image
 import io
 import tempfile
-
+import backtest
 
 # state and paths
 ROOT_DIR = pathlib.Path(__file__).resolve().parents[0]
@@ -590,7 +590,7 @@ def show_manage_trades(df):
 
 
 def show_analysis(df):
-    pass
+    backtest.show_backtest()
 
 
 if __name__ == "__main__":
