@@ -48,6 +48,11 @@ class TestStrategy(bt.Strategy):
 def show_backtest():
     st.title('Backtrader Integration for Streamlit')
 
+    with st.expander("Useful links", expanded=False):
+        st.write("Investopedia  [7 Technical Indicators to Build a Trading Toolkit](https://www.investopedia.com/top-7-technical-analysis-tools-4773275)")
+        st.write(
+            "Investopedia   [5 Must-Have Metrics for Value Investors](https://www.investopedia.com/articles/fundamental-analysis/09/five-must-have-metrics-value-investors.asp)")
+
     # Choose a ticker
     ticker = st.text_input("Enter a Ticker", 'AAPL')
 

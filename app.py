@@ -107,9 +107,9 @@ def main():
             st.session_state.title = "MANAGE TRADES"
 
     with column3:
-        if st.button('Analysis'):
+        if st.button('Analyse Strategy'):
             st.session_state.page = "Analysis"
-            st.session_state.title = "ANALYISIS"
+            st.session_state.title = "STRATEGY ANALYISIS"
 
 
     st.title(st.session_state.title)
