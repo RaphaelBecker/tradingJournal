@@ -33,6 +33,7 @@ journal_data_df_colums = [
     "human_mood_on_exit",
     "human_mistake",
     "human_reflection_for_improvement",
+    "human_picture_path",
 ]
 
 sectors = [

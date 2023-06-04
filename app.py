@@ -30,7 +30,7 @@ if 'metric1' not in st.session_state:
     st.session_state.metric1 = "tradeinfo_entry_price"
 
 if 'metric2' not in st.session_state:
-    st.session_state.metric2 = "tradeinfo_entry_price"
+    st.session_state.metric2 = "human_mood_on_entry"
 
 if 'additional_metrics' not in st.session_state:
     st.session_state.additional_metrics = ""
@@ -71,10 +71,9 @@ def load_selected_columns():
         st.error(f"selected_columns in {filepath_selected_cols} not found")
         return []
 
-def color_negative_red_positive_green(row):
-    found_elements = [s for s in row.index.tolist() if 'gain' in s]
-    color = '#90ee90' if row[found_elements[0]] > 0 else '#ff7f7f'  # light green and light red
-    return ['background-color: %s' % color]*len(row.values)
+def color_negative_red_positive_green(val):
+    color = 'red' if val < 1 else 'green' if val > 1 else 'white'
+    return f'background-color: {color}'
 
 
 # Function to categorize columns
@@ -177,136 +176,141 @@ def main():
 
 
 def show_dashboard(df):
-    # Calculate some basic statistics
-    total_trades = df.shape[0]
-    winning_trades = df[df['tradeinfo_gain_absolut'] > 0].shape[0]
-    losing_trades = df[df['tradeinfo_gain_absolut'] < 0].shape[0]
-    win_rate = winning_trades / total_trades
+    if len(df)>0:
+        # Calculate some basic statistics
+        total_trades = df.shape[0]
+        winning_trades = df[df['tradeinfo_gain_absolut'] > 0].shape[0]
+        losing_trades = df[df['tradeinfo_gain_absolut'] < 0].shape[0]
+        win_rate = winning_trades / total_trades
 
-    average_win = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].mean()
-    average_loss = df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].mean()
+        average_win = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].mean()
+        average_loss = df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].mean()
 
-    #---------------------------------------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------------------------------------------
 
-    # Calculate the total profit from winning trades
-    total_profit = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].sum()
+        # Calculate the total profit from winning trades
+        total_profit = df[df['tradeinfo_gain_absolut'] > 0]['tradeinfo_gain_absolut'].sum()
 
-    # Calculate the total loss from losing trades
-    # Since losses are represented as negative numbers, we need to multiply by -1 to get a positive total loss
-    total_loss = (-1) * df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].sum()
+        # Calculate the total loss from losing trades
+        # Since losses are represented as negative numbers, we need to multiply by -1 to get a positive total loss
+        total_loss = (-1) * df[df['tradeinfo_gain_absolut'] < 0]['tradeinfo_gain_absolut'].sum()
 
-    #---------------------------------------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------------------------------------------
 
-    # Calculate the Profit Factor
-    profit_factor = round(total_profit / total_loss, 2)
+        # Calculate the Profit Factor
+        profit_factor = round(total_profit / total_loss, 2)
 
-    # Calculate the cumulative returns
-    cumulative_returns = df['tradeinfo_gain_absolut'].cumsum()
+        # Calculate the cumulative returns
+        cumulative_returns = df['tradeinfo_gain_absolut'].cumsum()
 
-    # Calculate the running maximum
-    running_max = cumulative_returns.cummax()
+        # Calculate the running maximum
+        running_max = cumulative_returns.cummax()
 
-    # Calculate the drawdown
-    drawdown = running_max - cumulative_returns
+        # Calculate the drawdown
+        drawdown = running_max - cumulative_returns
 
-    # Maximum drawdown in dollar terms
-    max_drawdown_value = round(drawdown.max(),2)
+        # Maximum drawdown in dollar terms
+        max_drawdown_value = round(drawdown.max(),2)
 
-    # Maximum drawdown as a percentage of the portfolio value
-    max_drawdown_percentage = round(drawdown.max() / running_max.max(), 2)
+        # Maximum drawdown as a percentage of the portfolio value
+        max_drawdown_percentage = round(drawdown.max() / running_max.max(), 2)
 
-    #---------------------------------------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------------------------------------------
 
-    # Ensure 'tradeinfo_entry_date' and 'tradeinfo_exit_date' are in datetime format
-    df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'])
-    df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
+        # Ensure 'tradeinfo_entry_date' and 'tradeinfo_exit_date' are in datetime format
+        df['tradeinfo_entry_date'] = pd.to_datetime(df['tradeinfo_entry_date'])
+        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
 
-    # Filter the dataframe to only include rows where 'tradeinfo_exit_date' is not null
-    df_tradeinfo_exit_date = df[df['tradeinfo_exit_date'].notnull()]
+        # Filter the dataframe to only include rows where 'tradeinfo_exit_date' is not null
+        df_tradeinfo_exit_date = df[df['tradeinfo_exit_date'].notnull()]
 
-    # Calculate holding period for each trade
-    holding_period = df_tradeinfo_exit_date['tradeinfo_exit_date'] - df_tradeinfo_exit_date['tradeinfo_entry_date']
+        # Calculate holding period for each trade
+        holding_period = df_tradeinfo_exit_date['tradeinfo_exit_date'] - df_tradeinfo_exit_date['tradeinfo_entry_date']
 
-    # Calculate average holding period
-    average_holding_period = holding_period.mean()
+        # Calculate average holding period
+        average_holding_period = holding_period.mean()
 
-    # ---------------------------------------------------------------------------------------------------------------
+        # ---------------------------------------------------------------------------------------------------------------
 
-    st.subheader("BASIC TRADING STATISTICS")
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    with col1:
-        st.metric("Total number of trades", total_trades)
-    with col2:
-        st.metric("Win / Loose", f"{winning_trades} / {losing_trades}")
-    with col3:
-        st.metric("Win rate [%]", f"{win_rate * 100:.2f}")
-    with col4:
-        st.metric("Average win [EUR]", f"{average_win:.2f}")
-    with col5:
-        st.metric("Average loss [EUR]", f"{average_loss:.2f}")
+        st.subheader("BASIC TRADING STATISTICS")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        with col1:
+            st.metric("Total number of trades", total_trades)
+        with col2:
+            st.metric("Win / Loose", f"{winning_trades} / {losing_trades}")
+        with col3:
+            st.metric("Win rate [%]", f"{win_rate * 100:.2f}")
+        with col4:
+            st.metric("Average win [EUR]", f"{average_win:.2f}")
+        with col5:
+            st.metric("Average loss [EUR]", f"{average_loss:.2f}")
 
 
 
-    # Add placeholder for other metrics
-    with col1:
-        st.metric("Profit Factor", profit_factor)
-    with col2:
-        st.metric("Max Drawdown", max_drawdown_value)
-    with col3:
-        st.metric("Max Drawdown [%]", max_drawdown_percentage)
-    with col4:
-        st.metric("Average holding period [days]", str(average_holding_period.days))
+        # Add placeholder for other metrics
+        with col1:
+            st.metric("Profit Factor", profit_factor)
+        with col2:
+            st.metric("Max Drawdown", max_drawdown_value)
+        with col3:
+            st.metric("Max Drawdown [%]", max_drawdown_percentage)
+        with col4:
+            st.metric("Average holding period [days]", str(average_holding_period.days))
 
-    # -------------------------------------------------------------------------------------------------------------
-    # PLOT GAIN:
-    st.subheader("ACCUMULATED GAIN")
-    # Ensure 'tradeinfo_exit_date' is in datetime format
-    df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
+        # -------------------------------------------------------------------------------------------------------------
+        # PLOT GAIN:
+        st.subheader("ACCUMULATED GAIN")
+        # Ensure 'tradeinfo_exit_date' is in datetime format
+        df['tradeinfo_exit_date'] = pd.to_datetime(df['tradeinfo_exit_date'])
 
-    # Ensure 'tradeinfo_gain_absolut' is numeric (float or int)
-    df['tradeinfo_gain_absolut'] = pd.to_numeric(df['tradeinfo_gain_absolut'], errors='coerce')
+        # Ensure 'tradeinfo_gain_absolut' is numeric (float or int)
+        df['tradeinfo_gain_absolut'] = pd.to_numeric(df['tradeinfo_gain_absolut'], errors='coerce')
 
-    # Sort dataframe by 'tradeinfo_exit_date'
-    df_acc_gain = df.sort_values('tradeinfo_exit_date')
+        # Sort dataframe by 'tradeinfo_exit_date'
+        df_acc_gain = df.sort_values('tradeinfo_exit_date')
 
-    # Compute accumulated gain
-    df_acc_gain['accumulated_gain'] = df_acc_gain['tradeinfo_gain_absolut'].cumsum()
+        # Compute accumulated gain
+        df_acc_gain['accumulated_gain'] = df_acc_gain['tradeinfo_gain_absolut'].cumsum()
 
-    # Plot
-    st.area_chart(df_acc_gain.set_index('tradeinfo_exit_date')['accumulated_gain'])
+        # Plot
+        st.area_chart(df_acc_gain.set_index('tradeinfo_exit_date')['accumulated_gain'])
 
-    # -------------------------------------------------------------------------------------------------------------
-    # PLOT ADDITIONAL METRICS:
-    st.subheader("COMPARE METRICS")
-    # List of metrics available for plotting
-    metrics = ['tradeinfo_entry_price', 'tradeinfo_exit_price', 'tradeinfo_gain_percentage',
-               'tradeinfo_gain_absolut', 'tradeinfo_tax', 'tradeinfo_fees', 'fundamentals_market_cap',
-               'fundamentals_price_to_earning', 'fundamentals_price_to_book', 'fundamentals_dept_to_equity',
-               'fundamentals_free_cash_flow', 'fundamentals_PEG_ratio', 'technical_RSI', 'technical_trend_mac_d',
-               'technical_on_balance_volume', 'technical_AD_line', 'technical_ADX', 'technical_aroon_indicator']
+        # -------------------------------------------------------------------------------------------------------------
+        # PLOT ADDITIONAL METRICS:
+        st.subheader("COMPARE METRICS")
+        # List of metrics available for plotting
+        metrics = ['tradeinfo_entry_price', 'tradeinfo_exit_price', 'tradeinfo_gain_percentage',
+                   'tradeinfo_gain_absolut', 'tradeinfo_tax', 'tradeinfo_fees', 'fundamentals_market_cap',
+                   'fundamentals_price_to_earning', 'fundamentals_price_to_book', 'fundamentals_dept_to_equity',
+                   'fundamentals_free_cash_flow', 'fundamentals_PEG_ratio', 'technical_RSI', 'technical_trend_mac_d',
+                   'technical_on_balance_volume', 'technical_AD_line', 'technical_ADX', 'technical_aroon_indicator']
 
-    metrics2 = ["human_trading_idea_description", "human_mood_on_entry", "human_mood_on_exit", "human_mistake",
-               "human_reflection_for_improvement"]
+        metrics2 = ["human_trading_idea_description", "human_mood_on_entry", "human_mood_on_exit", "human_mistake",
+                   "human_reflection_for_improvement"]
 
-    metric_col1, metric_col2 = st.columns(2)
-    with metric_col1:
-        st.session_state.metric1 = st.selectbox('Select metric 1:', options=metrics)
-    with metric_col2:
-        st.session_state.additional_metrics = st.multiselect('Select additional metrics:', options=metrics)
+        metric_col1, metric_col2 = st.columns(2)
+        with metric_col1:
+            st.session_state.metric1 = st.selectbox('Select metric 1:', options=metrics)
+        with metric_col2:
+            st.session_state.additional_metrics = st.multiselect('Select additional metrics:', options=metrics)
 
-    # Combine metric1 and additional metrics
-    selected_metrics = [st.session_state.metric1] + st.session_state.additional_metrics
+        # Combine metric1 and additional metrics
+        selected_metrics = [st.session_state.metric1] + st.session_state.additional_metrics
 
-    # Plot
-    st.line_chart(df.set_index('tradeinfo_exit_date')[selected_metrics])
+        # Plot
+        st.line_chart(df.set_index('tradeinfo_exit_date')[selected_metrics])
 
-    # second plot for comparing different units
-    st.session_state.metric2 = st.selectbox('Select metric 2:', options=metrics)
-    # Sort DataFrame by date
-    df_sorted = df.sort_values('tradeinfo_exit_date')
+        # second plot for comparing different units
+        st.session_state.metric2 = st.selectbox('Select metric 2:', options=metrics2)
+        # Sort DataFrame by date
+        df_sorted = df.sort_values('tradeinfo_exit_date')
 
-    # Plot
-    st.line_chart(df_sorted.set_index('tradeinfo_exit_date')[st.session_state.metric2])
+        # Plot
+        counts = df[st.session_state.metric2].value_counts()
+        st.bar_chart(counts)
+
+    else:
+        st.info("Your trading list is empty! In order to add trades, go to Manage Trades.")
 
 
 
@@ -381,7 +385,7 @@ def show_manage_trades(df):
         trade_to_close = st.selectbox('Select a trade to close', open_trades.index)
 
         # Create the form to edit the selected trade
-        if trade_to_close:
+        if trade_to_close is not None:
             with st.form(key='close_trade_form'):
                 st.header(f'Close Trade {trade_to_close}')
                 close_trade_data = {}
@@ -435,8 +439,6 @@ def show_manage_trades(df):
 
                 if close_button:
                     # Update the trade in the DataFrame
-                    st.text(close_trade_data)
-                    st.text(df.columns)
                     for col in df.columns:
                         df.loc[trade_to_close, col] = close_trade_data[col]
                     save_data(df)
@@ -455,74 +457,81 @@ def show_manage_trades(df):
             st.header(f'Edit Trade {trade_to_edit}')
             edit_trade_data = {}
 
-            if df.loc[trade_to_edit, "human_picture_path"]:
-                image_path = pathlib.Path(str(df.loc[trade_to_edit, "human_picture_path"]))
+            image_path = None
 
-                # Check if the path is valid
-            if image_path is not None:
-                try:
-                    image = Image.open(image_path)
-                    st.image(image, caption='Uploaded Image', width=800)
-                except IOError as e:
-                    st.write(f"IMAGE: Could not read file, does it exist?..  {image_path}: {e}")
-            else:
-                st.write("No Image")
+            if trade_to_edit is not None:
 
-            uploaded_file = st.file_uploader("Change the Image")
+                if df.loc[trade_to_edit, "human_picture_path"]:
+                    image_path = pathlib.Path(str(df.loc[trade_to_edit, "human_picture_path"]))
+
+                    # Check if the path is valid
+                if image_path is not None:
+                    try:
+                        image = Image.open(image_path)
+                        st.image(image, caption='Uploaded Image', width=800)
+                    except IOError as e:
+                        st.write(f"IMAGE: Could not read file, does it exist?..  {image_path}: {e}")
+                else:
+                    st.write("No Image")
+
+                uploaded_file = st.file_uploader("Change the Image")
 
 
-            # Create 4 columns
-            cols = st.columns(4)
+                # Create 4 columns
+                cols = st.columns(4)
 
-            for col in df.columns:
-                # Categorize the column
-                category = categorize_column(col)
-                default_value = df.loc[trade_to_edit, col]
+                for col in df.columns:
+                    # Categorize the column
+                    category = categorize_column(col)
+                    default_value = df.loc[trade_to_edit, col]
 
-                # If the column belongs to one of the categories, create a text input for it in the corresponding column
-                if category >= 0:
-                    label = " ".join(col.split("_")[1:])
-                    if "sector" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.sectors)
-                    elif "market cap" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}",
-                                                                        [default_value] + data_specs.market_cap_ranges)
-                    elif "risk reward ratio" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}",
-                                                                        [default_value] + data_specs.risk_reward_ratios)
-                    elif "market sentiment" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.market_sentiment)
-                    elif "analyst rating" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.analyst_ratings)
-                    elif "mood" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.sorted_moods)
-                    elif "mistake" in label:
-                        edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.trading_mistakes)
-                    elif "date" in label:
-                        edit_trade_data[col] = cols[category].date_input(f"{label}", default_value)
-                    elif "picture path" in label:
-                        if uploaded_file:
-                            default_value = ROOT_DIR.joinpath('local_storage').joinpath('images').joinpath(uploaded_file.name)
-                            with open(default_value, 'wb') as out_file:
-                                out_file.write(uploaded_file.read())
+                    # If the column belongs to one of the categories, create a text input for it in the corresponding column
+                    if category >= 0:
+                        label = " ".join(col.split("_")[1:])
+                        if "sector" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.sectors)
+                        elif "market cap" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}",
+                                                                            [default_value] + data_specs.market_cap_ranges)
+                        elif "risk reward ratio" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}",
+                                                                            [default_value] + data_specs.risk_reward_ratios)
+                        elif "market sentiment" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.market_sentiment)
+                        elif "analyst rating" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.analyst_ratings)
+                        elif "mood" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.sorted_moods)
+                        elif "mistake" in label:
+                            edit_trade_data[col] = cols[category].selectbox(f"{label}", [default_value] + data_specs.trading_mistakes)
+                        elif "date" in label:
+                            edit_trade_data[col] = cols[category].date_input(f"{label}", default_value)
+                        elif "picture path" in label:
+                            if uploaded_file:
+                                default_value = ROOT_DIR.joinpath('local_storage').joinpath('images').joinpath(uploaded_file.name)
+                                with open(default_value, 'wb') as out_file:
+                                    out_file.write(uploaded_file.read())
 
-                            # delete old picture
-                            try:
-                                os.remove(image_path)
-                                st.info(f"File {image_path} has been deleted.")
-                            except FileNotFoundError:
-                                st.info(f"File {image_path} not found.")
-                            except PermissionError:
-                                st.info(f"Permission denied.")
-                            except Exception as e:
-                                st.info(f"An error occurred: {e}")
-                        edit_trade_data[col] = default_value
-
-                    else:
-                        if not 'gain' in label:
-                            edit_trade_data[col] = cols[category].text_input(f"{label}", value=default_value)
-                        else:
+                                # delete old picture
+                                try:
+                                    os.remove(image_path)
+                                    st.info(f"File {image_path} has been deleted.")
+                                except FileNotFoundError:
+                                    st.info(f"File {image_path} not found.")
+                                except PermissionError:
+                                    st.info(f"Permission denied.")
+                                except Exception as e:
+                                    st.info(f"An error occurred: {e}")
                             edit_trade_data[col] = default_value
+
+                        else:
+                            if not 'gain' in label:
+                                edit_trade_data[col] = cols[category].text_input(f"{label}", value=default_value)
+                            else:
+                                edit_trade_data[col] = default_value
+
+            else:
+                st.info("No closed trades in your trades list.")
 
 
 
@@ -538,11 +547,12 @@ def show_manage_trades(df):
                 save_data(df)
                 st.success(f'Trade {trade_to_edit} updated successfully!')
 
-            if delete_button:
-                # Delete the trade from the DataFrame
-                df = df.drop(trade_to_edit)
-                save_data(df)
-                st.success(f'Trade {trade_to_edit} deleted successfully!')
+            if trade_to_edit is not None:
+                if delete_button:
+                    # Delete the trade from the DataFrame
+                    df = df.drop(trade_to_edit)
+                    save_data(df)
+                    st.success(f'Trade {trade_to_edit} deleted successfully!')
 
 
     default_columns = load_selected_columns()
@@ -553,22 +563,27 @@ def show_manage_trades(df):
     col1, col2, col3, col4 = st.columns(4)
 
     if selected_columns:
-        sort_options = ["None"] + df.columns.tolist()
-        with col1:
-            sort_column = st.selectbox("Select column to sort by", sort_options)
-        with col2:
-            ascending = st.checkbox("inverse sorting")
-
-        if sort_column != "None":
-            df = df.sort_values(sort_column, ascending=ascending)
         # Create a list of all columns in selected_columns containing 'gain'
         gain_columns = [s for s in selected_columns if "gain" in s]
 
         if gain_columns:
-            styled_df = df[selected_columns].style.apply(color_negative_red_positive_green, axis=1)
-            st.markdown(styled_df.to_html(escape=False), unsafe_allow_html=True)
+            #st.markdown(styled_df.to_html(escape=False), unsafe_allow_html=True)
+            keys = df.columns
+            my_dict = {key: key.split('_', 1)[1] for key in keys}
+            my_dict["tradeinfo_entry_date"] = st.column_config.DateColumn(
+                "entry_date",
+                format="DD.MM.YYYY",
+                step=1
+            )
+            my_dict["tradeinfo_exit_date"] = st.column_config.DateColumn(
+                "exit_date",
+                format="DD.MM.YYYY",
+                step=1
+            )
+            st.dataframe(df.style.applymap(color_negative_red_positive_green, subset=['tradeinfo_gain_percentage']), column_order=selected_columns, column_config=my_dict, use_container_width=True)
         else:
-            st.table(df[selected_columns])
+            st.dataframe(df, column_order=selected_columns, column_config=my_dict, use_container_width=True)
+
         save_selected_columns(selected_columns)
     else:
         st.write("Select columns from selectbox!")
