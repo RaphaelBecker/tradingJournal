@@ -46,17 +46,21 @@ class TestStrategy(bt.Strategy):
 
 
 def show_backtest():
-    st.title('Backtrader Integration for Streamlit')
 
     with st.expander("Useful links", expanded=False):
         st.write("Investopedia  [7 Technical Indicators to Build a Trading Toolkit](https://www.investopedia.com/top-7-technical-analysis-tools-4773275)")
         st.write(
             "Investopedia   [5 Must-Have Metrics for Value Investors](https://www.investopedia.com/articles/fundamental-analysis/09/five-must-have-metrics-value-investors.asp)")
 
+    st.subheader('Backtrader Integration')
+    with st.expander("Specify Entry strategy", expanded=False):
+        st.text("Dummy entry strategy")
+    with st.expander("Specify Exit strategy", expanded=False):
+        st.text("Dummy exit strategy")
     # Choose a ticker
     ticker = st.text_input("Enter a Ticker", 'AAPL')
 
-    if st.button('Get Data'):
+    if st.button('Run backtest'):
         data = yf.download(ticker, start='2020-01-01', end='2021-12-31')
 
         # Insert your code here to add your custom fundamental/technical data to the dataframe.
