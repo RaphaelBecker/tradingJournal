@@ -8,13 +8,10 @@ from collections.abc import Iterable
 from datetime import datetime
 from PIL import Image
 import io
-import tempfile
 import backtest
 import numpy as np
-import seaborn as sns
-import calendar
-from matplotlib.colors import ListedColormap
-import itertools
+import july
+from july.utils import date_range
 
 # state and paths
 ROOT_DIR = pathlib.Path(__file__).resolve().parents[0]
@@ -317,7 +314,7 @@ def show_dashboard(df):
     #-----------------------------------------------------------------------------------------------------------------
         # Plot proftable days and negative days in a heatmap:
 
-        st.subheader("CALENDAR VIEW:")
+        st.subheader("CALENDAR VIEW: Trade activity and profitable days")
         # Parse dates and sort by date
         df_temp = df.copy()  # create a copy of df to avoid changing it
         df_temp["tradeinfo_exit_date"] = pd.to_datetime(df_temp["tradeinfo_exit_date"])
@@ -333,62 +330,28 @@ def show_dashboard(df):
         # Filter the DataFrame based on the selected year
         df_temp = df_temp[df_temp["year"] == selected_year]
 
-        # Resample by day and calculate sum of gains
-        df_daily = df_temp.groupby(["tradeinfo_exit_date"])["tradeinfo_gain_percentage"].sum().reset_index()
+        # Here, 'osl_df' is a pandas df.
+        dates = date_range("2020-01-01", "2020-12-31")
+        data = np.random.randint(0, 14, len(dates))
 
-        # Fill the missing dates with 0 gain
-        all_dates = pd.date_range(start=df_daily["tradeinfo_exit_date"].min(),
-                                  end=df_daily["tradeinfo_exit_date"].max())
-        df_daily.set_index("tradeinfo_exit_date", inplace=True)
-        df_daily = df_daily.reindex(all_dates, fill_value=0).reset_index().rename(
-            columns={"index": "tradeinfo_exit_date"})
+        fig, ax = plt.subplots()
 
-        # Add separate columns for day and month
-        df_daily["day"] = df_daily["tradeinfo_exit_date"].dt.day
-        df_daily["month"] = df_daily["tradeinfo_exit_date"].dt.month
+        july.heatmap(dates,
+            data,
+            ax=ax,
+            month_grid=True,
+            horizontal=True,
+            value_label=False,
+            date_label=False,
+            weekday_label=True,
+            month_label=True,
+            year_label=True,
+            fontsize=8,
+            title=None,
+            titlesize='medium',
+            dpi=140,
+            cmap="github")
 
-        # Aggregate by month and day before pivoting
-        if 'tradeinfo_exit_date' in df_daily.columns:
-            df_daily = df_daily.drop(columns=['tradeinfo_exit_date'])
-
-        # Ensure to sum only on 'tradeinfo_gain_percentage'
-        df_daily = df_daily.groupby(["month", "day"])['tradeinfo_gain_percentage'].sum().reset_index()
-
-        # Add this before pivoting
-        df_daily = df_daily.groupby(["month", "day"])['tradeinfo_gain_percentage'].sum().reset_index()
-
-        # Create a new DataFrame with a complete list of days for each month
-        all_months_days = pd.DataFrame(list(itertools.product(range(1, 13), range(1, 32))), columns=['month', 'day'])
-
-        # Merge this with the original DataFrame, filling missing values with 0
-        df_daily = pd.merge(all_months_days, df_daily, how='left', on=['month', 'day'])
-        df_daily['tradeinfo_gain_percentage'].fillna(0, inplace=True)
-
-        # Now you can pivot the DataFrame as before
-        df_pivot = df_daily.pivot(index="day", columns="month", values="tradeinfo_gain_percentage")
-
-        # Create a custom colormap
-        cmap = ListedColormap(['red', 'white', 'green'])
-
-        # Create a 3x4 grid of subplots
-        fig, axes = plt.subplots(3, 4, figsize=(15, 10))
-
-        for i, ax in enumerate(axes.flatten()):
-            # Create the heatmap
-            sns.heatmap(df_pivot.iloc[:, [i]], cmap=cmap, ax=ax)
-
-            # Set the title to the month name
-            ax.set_title(calendar.month_name[i + 1])
-
-        # Remove empty subplots
-        if df_pivot.shape[1] < 12:
-            for j in range(df_pivot.shape[1], 12):
-                fig.delaxes(axes.flatten()[j])
-
-        plt.tight_layout()
-        plt.show()
-
-        # Use streamlit to display the figure
         st.pyplot(fig)
 
 
