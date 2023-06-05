@@ -4,12 +4,20 @@ import backtrader as bt
 from backtrader.feeds import PandasData
 import numpy as np
 import datetime
+from backtest_strategies import BuyAndHold
 
+strategies_dict = {
+    "Buy and Hold": BuyAndHold
+}
 
 @st.cache_data  # cache
-def load_data(ticker, start_date, end_date):
+def load_OHLC(ticker, start_date, end_date):
     data = yf.download(ticker, start=start_date, end=end_date)
     return data
+
+@st.cache_data  # cache
+def load_INFO(ticker):
+    return yf.Ticker(ticker).info
 
 # Class to hold your custom fundamental/technical data
 class ExtendedPandasData(PandasData):
@@ -60,36 +68,55 @@ def show_backtest():
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        start_date = st.date_input("Start Date", value=datetime.date(2017,1, 1))
+        # Choose a ticker
+        ticker = st.text_input("Choose Ticker", 'AAPL')
+        tax_on_sell = st.text_input("Tax on sell [%]", value=25)
     with col2:
-        end_date = st.date_input("End Date")
+        start_date = st.date_input("Start Date", value=datetime.date(2017,1, 1))
+        broker_comission = st.text_input("Broker comission on trade execution [EUR]", value=1)
     with col3:
-        cash = int(st.text_input("Set cash", value=1000))
+        end_date = st.date_input("End Date")
+    with col4:
+        cash = int(st.text_input("Set start cash", value=1000))
     st.subheader('Backtrader Integration')
-    with st.expander("Specify Entry strategy", expanded=False):
-        st.text("Dummy entry strategy")
-    with st.expander("Specify Exit strategy", expanded=False):
+    with st.expander("LONG strategy", expanded=False):
+        strategy_chosen = st.selectbox("Select Strategy", strategies_dict.keys())
+    with st.expander("SHORT strategy", expanded=False):
         st.text("Dummy exit strategy")
-    # Choose a ticker
-    ticker = st.text_input("Enter a Ticker", 'AAPL')
 
-    if st.button('Run backtest'):
-        data = load_data(ticker=ticker, start_date=start_date, end_date=end_date)
 
-        # Insert your code here to add your custom fundamental/technical data to the dataframe.
-        # Note: For the purposes of this demo, random data is used.
-        data['price_to_earning'] = np.random.random(size=len(data))
-        # ... Add other columns in the same way
+    OHLC_dataframe = None
+    info_dict = None
 
+    button_col1, button_col2, _3, _4 = st.columns(4)
+
+    with button_col1:
+        if st.button("Show API Ticket Data"):
+            info_dict = load_INFO(ticker)
+    with button_col2:
+        if st.button('Run backtest'):
+            OHLC_dataframe = load_OHLC(ticker=ticker, start_date=start_date, end_date=end_date)
+
+
+    if info_dict:
+        st.write(info_dict)
+
+    if OHLC_dataframe is not None:
         # Pass it to the backtrader datafeed and add it to the cerebro
-        data_feed = ExtendedPandasData(dataname=data)
+        data_feed = ExtendedPandasData(dataname=OHLC_dataframe)
         cerebro = bt.Cerebro()
         cerebro.broker.setcash(cash=cash)
         cerebro.adddata(data_feed)
-        cerebro.addstrategy(TestStrategy)
+        cerebro.addstrategy(strategies_dict[strategy_chosen])
         cerebro.run()
-        cerebro.plot()
+        cerebro.plot(start=start_date, end=end_date,
+        #  Format string for the display of ticks on the x axis
+        fmt_x_ticks = '%Y-%b-%d %H:%M',
+        # Format string for the display of data points values
+        fmt_x_data = '%Y-%b-%d %H:%M')
 
         # Display the data
-        st.write(data)
+        st.write(OHLC_dataframe)
+
+
 
