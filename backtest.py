@@ -5,9 +5,11 @@ from backtrader.feeds import PandasData
 import numpy as np
 import datetime
 from backtest_strategies import BuyAndHold
+from backtest_strategies import TDI
 
 strategies_dict = {
-    "Buy and Hold": BuyAndHold
+    "TDI": TDI,
+    "Buy and Hold": BuyAndHold,
 }
 
 @st.cache_data  # cache
@@ -37,28 +39,6 @@ class ExtendedPandasData(PandasData):
     params = ((col, -1) for col in lines)
 
 
-# Your custom strategy
-class TestStrategy(bt.Strategy):
-    params = (
-        ('maperiod', 15),
-    )
-
-    def __init__(self):
-        self.dataclose = self.datas[0].close
-        self.order = None
-
-    def next(self):
-        if self.order:
-            return
-
-        if not self.position:
-            if self.dataclose[0] > self.dataclose[-1]:
-                self.order = self.buy()
-        else:
-            if self.dataclose[0] < self.dataclose[-1]:
-                self.order = self.sell()
-
-
 def show_backtest():
 
     with st.expander("Useful links", expanded=False):
@@ -70,19 +50,17 @@ def show_backtest():
     with col1:
         # Choose a ticker
         ticker = st.text_input("Choose Ticker", 'AAPL')
-        tax_on_sell = st.text_input("Tax on sell [%]", value=25)
+        strategy_chosen = st.selectbox("Select Strategy", strategies_dict.keys())
     with col2:
-        start_date = st.date_input("Start Date", value=datetime.date(2017,1, 1))
-        broker_comission = st.text_input("Broker comission on trade execution [EUR]", value=1)
+        start_date = st.date_input("Start Date", value=datetime.date(2021,1, 1))
+
     with col3:
         end_date = st.date_input("End Date")
+        stake = int(st.text_input("Set trade stake", value=5))
     with col4:
         cash = int(st.text_input("Set start cash", value=1000))
+        comission = float(st.text_input("Comission [%]", value=0.1))
     st.subheader('Backtrader Integration')
-    with st.expander("LONG strategy", expanded=False):
-        strategy_chosen = st.selectbox("Select Strategy", strategies_dict.keys())
-    with st.expander("SHORT strategy", expanded=False):
-        st.text("Dummy exit strategy")
 
 
     OHLC_dataframe = None
@@ -101,14 +79,32 @@ def show_backtest():
     if info_dict:
         st.write(info_dict)
 
+
     if OHLC_dataframe is not None:
+        cerebro = bt.Cerebro()
+
+        # Add combined strategy to cerebro
+        cerebro.addstrategy(strategies_dict[strategy_chosen])
+
         # Pass it to the backtrader datafeed and add it to the cerebro
         data_feed = ExtendedPandasData(dataname=OHLC_dataframe)
-        cerebro = bt.Cerebro()
-        cerebro.broker.setcash(cash=cash)
         cerebro.adddata(data_feed)
-        cerebro.addstrategy(strategies_dict[strategy_chosen])
+
+        # set cash
+        cerebro.broker.setcash(cash=cash)
+        # Add a FixedSize sizer according to the stake
+        cerebro.addsizer(bt.sizers.FixedSize, stake=stake)
+
+        # 0.1% ... divide by 100 to remove the %
+        cerebro.broker.setcommission(commission=(comission/100))
+
+        # RUN
+        # Print out the starting conditions
+        print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
         cerebro.run()
+        # Print out the final result
+        print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
         cerebro.plot(start=start_date, end=end_date,
         #  Format string for the display of ticks on the x axis
         fmt_x_ticks = '%Y-%b-%d %H:%M',
