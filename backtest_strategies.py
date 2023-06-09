@@ -10,7 +10,7 @@ class BuyAndHold(bt.Strategy):
 
 class TDI(bt.Strategy):
     params = (
-        ('maperiod', 15),
+        ('maperiod', 200),
     )
 
     def log(self, txt, dt=None):
@@ -35,18 +35,22 @@ class TDI(bt.Strategy):
 
         # Indicators for the plotting show
         # TDI --------------------------------------------------
-        rsi = bt.indicators.RSI(self.datas[0])
-        bt.indicators.SmoothedMovingAverage(rsi, period=10)
+        self.rsi = bt.indicators.RSI(self.datas[0])
+        self.smoothedSMA = bt.indicators.SmoothedMovingAverage(self.rsi, period=10)
         # Bollinger
-        bt.indicators.BollingerBands(rsi)
+        self.bb = bt.indicators.BollingerBands(self.rsi)
+        self.bull_rsi_bb_crossover = bt.ind.CrossOver(self.rsi, self.smoothedSMA)
+        self.bear_rsi_bb_crossover = bt.ind.CrossOver(self.smoothedSMA, self.rsi)
+        # self.bb.top[0]
+        # self.bb.bottom[0]
 
         # ------------------------------------------------------
         # MACD
-        bt.indicators.MACDHisto(self.datas[0])
+        self.macd = bt.indicators.MACDHisto(self.datas[0])
         # ATR
         #bt.indicators.ATR(self.datas[0], plot=True)
         # PIVOT
-        pivotindicator = bt.indicators.FibonacciPivotPoint(self.data1)
+        self.pivotindicator = bt.indicators.FibonacciPivotPoint(self.data1)
 
         #bt.indicators.ExponentialMovingAverage(self.datas[0], period=25)
         #bt.indicators.WeightedMovingAverage(self.datas[0], period=25,
@@ -105,7 +109,9 @@ class TDI(bt.Strategy):
         if not self.position:
 
             # Not yet ... we MIGHT BUY if ...
-            if self.dataclose[0] > self.sma[0]:
+            #if self.dataclose[0] > self.sma[0]:
+            if self.rsi[0] <= 48 and self.bull_rsi_bb_crossover[0] and \
+                    self.pivotindicator.s2[0] > self.dataclose[0] > self.pivotindicator.s3[0]:
                 # BUY, BUY, BUY!!! (with all possible default parameters)
                 self.log('BUY CREATE, %.2f' % self.dataclose[0])
 
@@ -114,7 +120,9 @@ class TDI(bt.Strategy):
 
         else:
 
-            if self.dataclose[0] < self.sma[0]:
+            #if self.dataclose[0] < self.sma[0]:
+            if self.rsi[0] > 62 and self.bear_rsi_bb_crossover[0]and \
+                    self.pivotindicator.r2[0] < self.dataclose[0] < self.pivotindicator.r3[0]:
                 # SELL, SELL, SELL!!! (with all possible default parameters)
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
 

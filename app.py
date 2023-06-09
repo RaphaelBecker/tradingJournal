@@ -99,7 +99,7 @@ def main():
 
     column1, column2, column3, _4, _5, _6, _7 = st.columns(7)
     with column1:
-        if st.button('Dashboard'):
+        if st.button('Statistics Dashboard'):
             st.session_state.page = "Dashboard"
             st.session_state.title = "DASHBOARD"
 
@@ -109,7 +109,7 @@ def main():
             st.session_state.title = "MANAGE TRADES"
 
     with column3:
-        if st.button('Analyse Strategy'):
+        if st.button('Strategy Analysis'):
             st.session_state.page = "Analysis"
             st.session_state.title = "STRATEGY ANALYISIS"
 

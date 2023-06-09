@@ -66,10 +66,10 @@ def show_backtest():
     OHLC_dataframe = None
     info_dict = None
 
-    button_col1, button_col2, _3, _4 = st.columns(4)
+    button_col1, button_col2, _3, _4, _5, _6, _7 = st.columns(7)
 
     with button_col1:
-        if st.button("Show API Ticket Data"):
+        if st.button("Show API Ticker Data"):
             info_dict = load_INFO(ticker)
     with button_col2:
         if st.button('Run backtest'):
@@ -90,7 +90,8 @@ def show_backtest():
         data_feed = ExtendedPandasData(dataname=OHLC_dataframe)
         cerebro.adddata(data_feed)
         # Add resampled data for Pivot Indicator resampled data: data1
-        cerebro.resampledata(data_feed, timeframe=bt.TimeFrame.Months)
+        data1 = cerebro.resampledata(data_feed, timeframe=bt.TimeFrame.Months, compression=1)
+        data1.plotinfo.plot = False
 
         # set cash
         cerebro.broker.setcash(cash=cash)
@@ -111,7 +112,7 @@ def show_backtest():
         #  Format string for the display of ticks on the x axis
         fmt_x_ticks = '%Y-%b-%d %H:%M',
         # Format string for the display of data points values
-        fmt_x_data = '%Y-%b-%d %H:%M')
+        fmt_x_data = '%Y-%b-%d %H:%M', style='candlestick', barup='green', bardown='red')
 
         # Display the data
         st.write(OHLC_dataframe)
