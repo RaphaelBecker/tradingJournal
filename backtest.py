@@ -89,6 +89,8 @@ def show_backtest():
         # Pass it to the backtrader datafeed and add it to the cerebro
         data_feed = ExtendedPandasData(dataname=OHLC_dataframe)
         cerebro.adddata(data_feed)
+        # Add resampled data for Pivot Indicator resampled data: data1
+        cerebro.resampledata(data_feed, timeframe=bt.TimeFrame.Months)
 
         # set cash
         cerebro.broker.setcash(cash=cash)

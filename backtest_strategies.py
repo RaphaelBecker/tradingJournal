@@ -45,6 +45,8 @@ class TDI(bt.Strategy):
         bt.indicators.MACDHisto(self.datas[0])
         # ATR
         #bt.indicators.ATR(self.datas[0], plot=True)
+        # PIVOT
+        pivotindicator = bt.indicators.FibonacciPivotPoint(self.data1)
 
         #bt.indicators.ExponentialMovingAverage(self.datas[0], period=25)
         #bt.indicators.WeightedMovingAverage(self.datas[0], period=25,
