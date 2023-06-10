@@ -4,13 +4,26 @@ import backtrader as bt
 from backtrader.feeds import PandasData
 import numpy as np
 import datetime
-from backtest_strategies import BuyAndHold
-from backtest_strategies import TDI
+import importlib
+import os
 
-strategies_dict = {
-    "TDI": TDI,
-    "Buy and Hold": BuyAndHold,
-}
+strategies_dict = {}
+
+# Define the directory where your strategy files are located
+directory = 'strategies'
+
+# Iterate over all Python files in the directory
+for filename in os.listdir(directory):
+    if filename.endswith('.py'):
+        # Remove the .py part to get the module name
+        module_name = filename[:-3]
+        # Import the module
+        module = importlib.import_module(f'{directory}.{module_name}')
+        # Assume each file only has one class, get that class
+        # Note: This will only get the first class in each file
+        strategy_class = next(c for n, c in module.__dict__.items() if isinstance(c, type))
+        # Add the class to the dictionary
+        strategies_dict[module_name] = strategy_class
 
 @st.cache_data  # cache
 def load_OHLC(ticker, start_date, end_date):
@@ -45,15 +58,24 @@ def show_backtest():
         st.write("Investopedia  [7 Technical Indicators to Build a Trading Toolkit](https://www.investopedia.com/top-7-technical-analysis-tools-4773275)")
         st.write(
             "Investopedia   [5 Must-Have Metrics for Value Investors](https://www.investopedia.com/articles/fundamental-analysis/09/five-must-have-metrics-value-investors.asp)")
+        st.write(
+            "Research       [Yahoo Ticker Research](https://finance.yahoo.com/lookup)")
+
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         # Choose a ticker
-        ticker = st.text_input("Choose Ticker", 'AAPL')
-        strategy_chosen = st.selectbox("Select Strategy", strategies_dict.keys())
+        ticker_list = st.selectbox("Choose ticker list", ["Manual selection", "Watchlist", "Open Trades"])
+        ticker = "APPL"
+        if ticker_list == "Manual selection":
+            ticker = st.text_input("Choose Ticker", 'AAPL')
+        if ticker_list == "Watchlist":
+            ticker = st.selectbox("Chosse from Watchlist", ["APPL", "TSLA", "NFLX"])
+        if ticker_list == "Open Trades":
+            ticker = st.selectbox("Chosse from Open Trades", ["APPL", "TSLA", "NFLX"])
     with col2:
         start_date = st.date_input("Start Date", value=datetime.date(2021,1, 1))
-
+        strategy_chosen = st.selectbox("Select Strategy", strategies_dict.keys())
     with col3:
         end_date = st.date_input("End Date")
         stake = int(st.text_input("Set trade stake", value=5))
