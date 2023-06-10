@@ -131,18 +131,22 @@ def show_backtest():
         start_cash = cerebro.broker.getvalue()
         results = cerebro.run()
         strat = results[0]
+        protfolio_value = cerebro.broker.getvalue()
+        account_cash = cerebro.broker.getcash()
 
         print('\n# Stats: -----------------------------------------------------------')
         print('Starting Portfolio Value: %.2f' % start_cash)
         # Print out the final result
-        print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
-        print('Remaining Cash: %.2f' % cerebro.broker.getcash())
+        print('Final Portfolio Value: %.2f' % protfolio_value)
+        print('Remaining Cash: %.2f' % account_cash)
+        print('Gain: %.2f' % (protfolio_value + account_cash - start_cash))
         print("Total trades:", strat.analyzers.tradeanalyzer.get_analysis().total.closed)
         print("Total wins:", strat.analyzers.tradeanalyzer.get_analysis().won.total)
         print("Total losses:", strat.analyzers.tradeanalyzer.get_analysis().lost.total)
         # calculate the win rate
         win_rate = strat.analyzers.tradeanalyzer.get_analysis().won.total / strat.analyzers.tradeanalyzer.get_analysis().total.closed
         print('Win Rate: %.2f%%' % (win_rate * 100))
+        print(f'Backtest days: {date}')
         print('# -------------------------------------------------------------------\n')
 
         cerebro.plot(start=start_date, end=end_date,
