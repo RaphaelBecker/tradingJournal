@@ -123,12 +123,27 @@ def show_backtest():
         # 0.1% ... divide by 100 to remove the %
         cerebro.broker.setcommission(commission=(comission/100))
 
+        # Add the analyzer to the Cerebro engine
+        cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="tradeanalyzer")
+
         # RUN
         # Print out the starting conditions
-        print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
-        cerebro.run()
+        start_cash = cerebro.broker.getvalue()
+        results = cerebro.run()
+        strat = results[0]
+
+        print('\n# Stats: -----------------------------------------------------------')
+        print('Starting Portfolio Value: %.2f' % start_cash)
         # Print out the final result
         print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+        print('Remaining Cash: %.2f' % cerebro.broker.getcash())
+        print("Total trades:", strat.analyzers.tradeanalyzer.get_analysis().total.closed)
+        print("Total wins:", strat.analyzers.tradeanalyzer.get_analysis().won.total)
+        print("Total losses:", strat.analyzers.tradeanalyzer.get_analysis().lost.total)
+        # calculate the win rate
+        win_rate = strat.analyzers.tradeanalyzer.get_analysis().won.total / strat.analyzers.tradeanalyzer.get_analysis().total.closed
+        print('Win Rate: %.2f%%' % (win_rate * 100))
+        print('# -------------------------------------------------------------------\n')
 
         cerebro.plot(start=start_date, end=end_date,
         #  Format string for the display of ticks on the x axis
