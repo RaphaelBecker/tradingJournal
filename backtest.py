@@ -133,21 +133,25 @@ def show_backtest():
         strat = results[0]
         protfolio_value = cerebro.broker.getvalue()
         account_cash = cerebro.broker.getcash()
+        backtested_days = end_date - start_date
 
-        print('\n# Stats: -----------------------------------------------------------')
-        print('Starting Portfolio Value: %.2f' % start_cash)
-        # Print out the final result
-        print('Final Portfolio Value: %.2f' % protfolio_value)
-        print('Remaining Cash: %.2f' % account_cash)
-        print('Gain: %.2f' % (protfolio_value + account_cash - start_cash))
-        print("Total trades:", strat.analyzers.tradeanalyzer.get_analysis().total.closed)
-        print("Total wins:", strat.analyzers.tradeanalyzer.get_analysis().won.total)
-        print("Total losses:", strat.analyzers.tradeanalyzer.get_analysis().lost.total)
-        # calculate the win rate
-        win_rate = strat.analyzers.tradeanalyzer.get_analysis().won.total / strat.analyzers.tradeanalyzer.get_analysis().total.closed
-        print('Win Rate: %.2f%%' % (win_rate * 100))
-        print(f'Backtest days: {date}')
-        print('# -------------------------------------------------------------------\n')
+        try:
+            print('\n# Stats: -----------------------------------------------------------')
+            print('Starting Portfolio Value: %.2f' % start_cash)
+            # Print out the final result
+            print('Final Portfolio Value: %.2f' % protfolio_value)
+            print('Remaining Cash: %.2f' % account_cash)
+            print('Gain: %.2f' % (protfolio_value + account_cash - start_cash))
+            print("Total trades:", strat.analyzers.tradeanalyzer.get_analysis().total.closed)
+            print("Total wins:", strat.analyzers.tradeanalyzer.get_analysis().won.total)
+            print("Total losses:", strat.analyzers.tradeanalyzer.get_analysis().lost.total)
+            # calculate the win rate
+            win_rate = strat.analyzers.tradeanalyzer.get_analysis().won.total / strat.analyzers.tradeanalyzer.get_analysis().total.closed
+            print('Win Rate: %.2f%%' % (win_rate * 100))
+            print(f'Backtested days: {backtested_days.days}')
+            print('# -------------------------------------------------------------------\n')
+        except KeyError as e:
+            print(f"Keyerror: {e}")
 
         cerebro.plot(start=start_date, end=end_date,
         #  Format string for the display of ticks on the x axis
