@@ -26,6 +26,7 @@ class BreakoutStrategy(bt.Strategy):
         self.highest_high = bt.indicators.Highest(self.data_close(-1), period=self.params.breakout_period)
         self.lowest_low = bt.indicators.Lowest(self.data_close(-1), period=self.params.close_period)
         self.rsi = bt.indicators.RSI(self.data_close)
+        self.sma100 = bt.indicators.SmoothedMovingAverage(self.data_close, period=100)
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
             # Buy/Sell order submitted/accepted to/by broker - Nothing to do
