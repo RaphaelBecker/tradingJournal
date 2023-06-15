@@ -1,8 +1,11 @@
 import backtrader as bt
 
-class TDI(bt.Strategy):
+class FollowInstitutions(bt.Strategy):
     # ADD the parameters here -----------------------------------------------------------------------------------------
-
+    params = (
+        ('volume_factor', 1.5),
+        ('volume_average_length', 20),
+    )
     # -----------------------------------------------------------------------------------------------------------------
 
     def log(self, txt, dt=None):
@@ -20,7 +23,12 @@ class TDI(bt.Strategy):
         self.buycomm = None
 
         # ADD the Indicators here -----------------------------------------------------------------------------------------
-
+        # Calculate average volume using Simple Moving Average (SMA)
+        self.sma_volume = bt.indicators.SimpleMovingAverage(
+            self.data.volume, period=self.params.volume_average_length
+        )
+        # On Balance Volume (OBV) indicator
+        self.obv = bt.indicators.OnBalanceVolume(self.data)
         # -----------------------------------------------------------------------------------------------------------------
 
 
@@ -76,15 +84,22 @@ class TDI(bt.Strategy):
         if not self.position:
 
             # ADD buy Conditions here ----------------------------------------------------------------------------------
-            if self.dataclose[0] > 1:
-                self.order = self.buy()
+            if self.data.volume[0] > self.params.volume_factor * self.sma_volume[0]:
+                if self.data.close[0] > self.data.close[-1] and self.obv[0] > self.obv[-1]:
+                    self.buy()  # Institutional buying may be happening
+                    self.log('BUY CREATE, %.2f' % self.dataclose[0])
+                elif self.data.close[0] < self.data.close[-1] and self.obv[0] < self.obv[-1]:
+                    self.sell()  # Institutional selling may be happening
+                    self.log('SELL CREATE, %.2f' % self.dataclose[0])
                 # ------------------------------------------------------------------------------------------------------
-                self.log('BUY CREATE, %.2f' % self.dataclose[0])
 
         else:
 
             # ADD sell Conditions here ---------------------------------------------------------------------------------
-            if self.dataclose[0] < 1:
-                self.order = self.sell()
+            if (self.position.size > 0 and self.obv[0] < self.obv[-1]) or (
+                    self.position.size < 0 and self.obv[0] > self.obv[-1]
+            ):
+                self.close()  # Exit the position if OBV goes against our position
+
                 # ------------------------------------------------------------------------------------------------------
-                self.log('SELL CREATE, %.2f' % self.dataclose[0])
+                self.log('EXIT POSITION, %.2f' % self.dataclose[0])

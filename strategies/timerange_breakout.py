@@ -1,5 +1,8 @@
 import backtrader as bt
 
+# Good Performace Stocks for this strategay:
+# APPL, UNM,
+
 class BreakoutStrategy(bt.Strategy):
     # ADD the parameters here -----------------------------------------------------------------------------------------
     params = dict(
