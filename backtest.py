@@ -70,7 +70,7 @@ def show_backtest():
         if ticker_list == "Manual selection":
             ticker = st.text_input("Choose Ticker", 'AAPL')
         if ticker_list == "Watchlist":
-            ticker = st.selectbox("Chosse from Watchlist", ["APPL", "TSLA", "NFLX"])
+            ticker = st.selectbox("Chosse from Watchlist", ["APPL", "TSLA", "NFLX", "S92.DE"])
         if ticker_list == "Open Trades":
             ticker = st.selectbox("Chosse from Open Trades", ["APPL", "TSLA", "NFLX"])
     with col2:

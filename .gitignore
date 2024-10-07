@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# local data
+local_storage/trades.csv
+images/
+
 # Distribution / packaging
 .Python
 build/

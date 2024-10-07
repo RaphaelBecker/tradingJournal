@@ -80,7 +80,10 @@ class BreakoutStrategy(bt.Strategy):
 
         if not self.position:  # if we are not in the market
             if self.data_close > self.highest_high:
-                self.buy()  # enter long
+                # compounding: buy with all available cash
+                self.order_target_percent(target=1.0)
+                # buy fixed order size:
+                # self.buy()
 
         elif self.data_close < self.lowest_low:
             self.close()  # close long position
